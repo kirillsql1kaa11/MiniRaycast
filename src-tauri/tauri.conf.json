@@ -13,14 +13,14 @@
     "windows": [
       {
         "title": "MiniRaycast",
-        "width": 720,
-        "height": 480,
+        "width": 680,
+        "height": 60,
         "resizable": false,
         "fullscreen": false,
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true,
-        "center": true,
+        "center": false,
         "skipTaskbar": true,
         "visible": false,
         "shadow": true

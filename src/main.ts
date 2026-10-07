@@ -8,10 +8,13 @@ let debounceTimer: number | null = null;
 let toastTimer: number | null = null;
 
 const searchInput = document.getElementById("search-input") as HTMLInputElement;
+const resultsContainer = document.getElementById("results-container") as HTMLElement;
 const resultsList = document.getElementById("results-list") as HTMLDivElement;
+const launcherFooter = document.getElementById("launcher-footer") as HTMLElement;
 const emptyState = document.getElementById("empty-state") as HTMLDivElement;
 const metaCount = document.getElementById("meta-count") as HTMLSpanElement;
 const actionLabel = document.getElementById("action-label") as HTMLSpanElement;
+const hotkeyPill = document.getElementById("hotkey-pill") as HTMLSpanElement;
 const toast = document.getElementById("toast") as HTMLDivElement;
 const toastText = document.getElementById("toast-text") as HTMLSpanElement;
 const toastIcon = document.getElementById("toast-icon") as HTMLSpanElement;
@@ -21,6 +24,19 @@ const emptyIconSlot = document.getElementById("empty-icon-slot") as HTMLDivEleme
 searchIconSlot.innerHTML = ICONS.search;
 emptyIconSlot.innerHTML = ICONS.empty;
 toastIcon.innerHTML = ICONS.check;
+
+async function refreshHotkey() {
+  try {
+    const hk = await invoke<string>("get_current_hotkey");
+    if (hk && hotkeyPill) {
+      hotkeyPill.textContent = hk;
+    }
+  } catch {
+    if (hotkeyPill) {
+      hotkeyPill.textContent = "Alt+Space";
+    }
+  }
+}
 
 function showToast(message: string) {
   if (toastTimer) clearTimeout(toastTimer);
@@ -50,19 +66,48 @@ function updateActionLabel() {
   }
 }
 
+async function updateWindowHeight() {
+  if (items.length === 0) {
+    resultsContainer.style.display = "none";
+    launcherFooter.style.display = "none";
+    try {
+      await invoke("resize_and_position", { height: 60 });
+    } catch {
+      // Fallback
+    }
+  } else {
+    resultsContainer.style.display = "flex";
+    launcherFooter.style.display = "flex";
+    const calculated = Math.min(60 + items.length * 50 + 36, 400);
+    try {
+      await invoke("resize_and_position", { height: calculated });
+    } catch {
+      // Fallback
+    }
+  }
+}
+
 function renderItems() {
   resultsList.innerHTML = "";
 
   if (items.length === 0) {
     resultsList.style.display = "none";
-    emptyState.style.display = "flex";
+    if (searchInput.value.trim().length > 0) {
+      emptyState.style.display = "flex";
+      resultsContainer.style.display = "flex";
+      launcherFooter.style.display = "none";
+      invoke("resize_and_position", { height: 180 }).catch(() => {});
+    } else {
+      emptyState.style.display = "none";
+      updateWindowHeight();
+    }
     metaCount.textContent = "0 items";
     updateActionLabel();
     return;
   }
 
-  resultsList.style.display = "flex";
   emptyState.style.display = "none";
+  resultsList.style.display = "flex";
   metaCount.textContent = `${items.length} ${items.length === 1 ? "item" : "items"}`;
 
   items.forEach((item, index) => {
@@ -97,6 +142,7 @@ function renderItems() {
   });
 
   updateActionLabel();
+  updateWindowHeight();
   scrollSelectedIntoView();
 }
 
@@ -157,6 +203,7 @@ async function executeSelectedItem() {
     showToast(`Timer set for ${secs}s`);
   } else if (item.action === "set_hotkey") {
     showToast(`Hotkey set to ${item.payload}`);
+    refreshHotkey();
   }
 
   try {
@@ -207,5 +254,6 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
   }
 });
 
+refreshHotkey();
 fetchSearch("");
 searchInput.focus();

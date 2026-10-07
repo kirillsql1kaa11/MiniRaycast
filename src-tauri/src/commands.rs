@@ -108,10 +108,17 @@ pub fn toggle_window(window: WebviewWindow) -> Result<(), String> {
     if is_visible {
         window.hide().map_err(|e| e.to_string())?;
     } else {
+        crate::position_bottom_window(&window, 60);
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
         crate::force_focus_window(&window);
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn resize_and_position(height: u32, window: WebviewWindow) -> Result<(), String> {
+    crate::position_bottom_window(&window, height);
     Ok(())
 }
 

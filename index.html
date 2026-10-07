@@ -8,6 +8,15 @@
   </head>
   <body>
     <div id="app" class="launcher-container">
+      <main class="results-container" id="results-container" style="display: none;">
+        <div class="results-list" id="results-list"></div>
+        <div class="empty-state" id="empty-state" style="display: none;">
+          <div class="empty-icon" id="empty-icon-slot"></div>
+          <div class="empty-title">No results found</div>
+          <div class="empty-subtitle">Try calculating an expression or searching for an app</div>
+        </div>
+      </main>
+
       <header class="search-header">
         <div class="search-icon" id="search-icon-slot"></div>
         <input
@@ -18,19 +27,12 @@
           spellcheck="false"
           autofocus
         />
-        <div class="header-badges" id="header-badges"></div>
+        <div class="header-badges" id="header-badges">
+          <span class="hotkey-pill" id="hotkey-pill">Alt+Space</span>
+        </div>
       </header>
 
-      <main class="results-container" id="results-container">
-        <div class="results-list" id="results-list"></div>
-        <div class="empty-state" id="empty-state" style="display: none;">
-          <div class="empty-icon" id="empty-icon-slot"></div>
-          <div class="empty-title">No results found</div>
-          <div class="empty-subtitle">Try calculating an expression or searching for an installed app</div>
-        </div>
-      </main>
-
-      <footer class="launcher-footer">
+      <footer class="launcher-footer" id="launcher-footer" style="display: none;">
         <div class="footer-left" id="footer-meta">
           <span class="meta-count" id="meta-count">0 items</span>
         </div>

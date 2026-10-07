@@ -45,6 +45,23 @@ pub fn force_focus_window(window: &WebviewWindow) {
     let _ = window.set_focus();
 }
 
+pub fn position_bottom_window(window: &WebviewWindow, height: u32) {
+    if let Ok(Some(monitor)) = window.current_monitor() {
+        let screen_size = monitor.size();
+        let screen_pos = monitor.position();
+        let scale_factor = monitor.scale_factor();
+
+        let width = 680.0 * scale_factor;
+        let phys_h = (height as f64) * scale_factor;
+
+        let x = screen_pos.x + ((screen_size.width as f64 - width) / 2.0) as i32;
+        let y = screen_pos.y + (screen_size.height as f64 - phys_h - (70.0 * scale_factor)) as i32;
+
+        let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize::new(width as u32, phys_h as u32)));
+        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)));
+    }
+}
+
 fn update_hotkey_from_tray(app: &AppHandle, new_hotkey: &str) {
     if let Some(state) = app.try_state::<AppState>() {
         let old_hotkey = if let Ok(db) = state.db.lock() {
@@ -104,6 +121,7 @@ pub fn run() {
                             if is_visible {
                                 window.hide().ok();
                             } else {
+                                position_bottom_window(&window, 60);
                                 window.show().ok();
                                 window.set_focus().ok();
                                 force_focus_window(&window);
@@ -122,6 +140,7 @@ pub fn run() {
             commands::clear_history,
             commands::hide_window,
             commands::toggle_window,
+            commands::resize_and_position,
             commands::get_current_hotkey,
             commands::change_hotkey
         ])
@@ -188,6 +207,7 @@ pub fn run() {
                                 if is_visible {
                                     window.hide().ok();
                                 } else {
+                                    position_bottom_window(&window, 60);
                                     window.show().ok();
                                     window.set_focus().ok();
                                     force_focus_window(&window);
@@ -225,6 +245,7 @@ pub fn run() {
                             if is_visible {
                                 window.hide().ok();
                             } else {
+                                position_bottom_window(&window, 60);
                                 window.show().ok();
                                 window.set_focus().ok();
                                 force_focus_window(&window);
@@ -254,6 +275,7 @@ pub fn run() {
                     }
                 });
 
+                position_bottom_window(&window, 60);
                 window.show().ok();
                 window.set_focus().ok();
                 force_focus_window(&window);
