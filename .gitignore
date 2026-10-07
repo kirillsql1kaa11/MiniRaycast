@@ -1,0 +1,12 @@
+target/
+node_modules/
+dist/
+dist-isolation/
+*.db
+*.db-journal
+.DS_Store
+Thumbs.db
+*.log
+src-tauri/gen/
+.vscode/
+.idea/
