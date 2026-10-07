@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MiniRaycast",
+  "version": "0.1.0",
+  "identifier": "com.miniraycast.launcher",
+  "build": {
+    "beforeDevCommand": "npm.cmd run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm.cmd run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MiniRaycast",
+        "width": 720,
+        "height": 480,
+        "resizable": false,
+        "fullscreen": false,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "center": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "shadow": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
