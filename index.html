@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MiniRaycast</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="launcher-container">
+      <header class="search-header">
+        <div class="search-icon" id="search-icon-slot"></div>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Type a command or search..."
+          autocomplete="off"
+          spellcheck="false"
+          autofocus
+        />
+        <div class="header-badges" id="header-badges"></div>
+      </header>
+
+      <main class="results-container" id="results-container">
+        <div class="results-list" id="results-list"></div>
+        <div class="empty-state" id="empty-state" style="display: none;">
+          <div class="empty-icon" id="empty-icon-slot"></div>
+          <div class="empty-title">No results found</div>
+          <div class="empty-subtitle">Try calculating an expression or searching for an installed app</div>
+        </div>
+      </main>
+
+      <footer class="launcher-footer">
+        <div class="footer-left" id="footer-meta">
+          <span class="meta-count" id="meta-count">0 items</span>
+        </div>
+        <div class="footer-shortcuts">
+          <div class="shortcut-pill">
+            <span class="key-cap">↑</span>
+            <span class="key-cap">↓</span>
+            <span class="key-label">Navigate</span>
+          </div>
+          <div class="shortcut-pill">
+            <span class="key-cap">↵</span>
+            <span class="key-label" id="action-label">Open</span>
+          </div>
+          <div class="shortcut-pill">
+            <span class="key-cap">Esc</span>
+            <span class="key-label">Close</span>
+          </div>
+        </div>
+      </footer>
+
+      <div class="toast" id="toast" style="display: none;">
+        <span class="toast-icon" id="toast-icon"></span>
+        <span class="toast-text" id="toast-text"></span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
