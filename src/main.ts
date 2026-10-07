@@ -68,22 +68,24 @@ function updateActionLabel() {
 
 async function updateWindowHeight() {
   if (items.length === 0) {
-    resultsContainer.style.display = "none";
-    launcherFooter.style.display = "none";
-    try {
-      await invoke("resize_and_position", { height: 60 });
-    } catch {
-      // Fallback
+    if (searchInput.value.trim().length > 0) {
+      resultsContainer.style.display = "flex";
+      emptyState.style.display = "flex";
+      resultsList.style.display = "none";
+      launcherFooter.style.display = "none";
+      await invoke("resize_and_position", { height: 260 }).catch(() => {});
+    } else {
+      resultsContainer.style.display = "none";
+      launcherFooter.style.display = "none";
+      await invoke("resize_and_position", { height: 60 }).catch(() => {});
     }
   } else {
     resultsContainer.style.display = "flex";
+    emptyState.style.display = "none";
+    resultsList.style.display = "flex";
     launcherFooter.style.display = "flex";
-    const calculated = Math.min(60 + items.length * 50 + 36, 400);
-    try {
-      await invoke("resize_and_position", { height: calculated });
-    } catch {
-      // Fallback
-    }
+    const calculated = Math.min(58 + 38 + items.length * 50 + 20, 536);
+    await invoke("resize_and_position", { height: calculated }).catch(() => {});
   }
 }
 
@@ -91,23 +93,12 @@ function renderItems() {
   resultsList.innerHTML = "";
 
   if (items.length === 0) {
-    resultsList.style.display = "none";
-    if (searchInput.value.trim().length > 0) {
-      emptyState.style.display = "flex";
-      resultsContainer.style.display = "flex";
-      launcherFooter.style.display = "none";
-      invoke("resize_and_position", { height: 180 }).catch(() => {});
-    } else {
-      emptyState.style.display = "none";
-      updateWindowHeight();
-    }
     metaCount.textContent = "0 items";
     updateActionLabel();
+    updateWindowHeight();
     return;
   }
 
-  emptyState.style.display = "none";
-  resultsList.style.display = "flex";
   metaCount.textContent = `${items.length} ${items.length === 1 ? "item" : "items"}`;
 
   items.forEach((item, index) => {
@@ -162,7 +153,7 @@ function renderSelection() {
 function scrollSelectedIntoView() {
   const selectedEl = resultsList.children[selectedIndex] as HTMLElement | undefined;
   if (selectedEl) {
-    selectedEl.scrollIntoView({ block: "nearest" });
+    selectedEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 }
 

@@ -1,6 +1,6 @@
 :root {
-  --bg-app: rgba(16, 16, 20, 0.92);
-  --bg-header: rgba(22, 22, 28, 0.96);
+  --bg-app: rgba(16, 16, 20, 0.94);
+  --bg-header: rgba(22, 22, 28, 0.98);
   --bg-item-hover: rgba(255, 255, 255, 0.05);
   --bg-item-active: rgba(255, 255, 255, 0.09);
   --bg-badge: rgba(255, 255, 255, 0.08);
@@ -37,26 +37,26 @@ html, body {
 .launcher-container {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   width: 100%;
   height: 100%;
   background: var(--bg-app);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 1px rgba(255, 255, 255, 0.15) inset;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.15) inset;
 }
 
 .search-header {
   display: flex;
   align-items: center;
   padding: 0 18px;
-  height: 60px;
+  height: 58px;
+  min-height: 58px;
   background: var(--bg-header);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  order: 2;
 }
 
 .search-icon {
@@ -101,16 +101,14 @@ html, body {
 
 .results-container {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px;
-  border-bottom: 1px solid var(--border-subtle);
-  order: 1;
-  max-height: 320px;
+  padding: 8px 10px;
 }
 
 .results-container::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .results-container::-webkit-scrollbar-track {
@@ -118,8 +116,12 @@ html, body {
 }
 
 .results-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+
+.results-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .results-list {
@@ -132,6 +134,7 @@ html, body {
   display: flex;
   align-items: center;
   height: 50px;
+  min-height: 50px;
   padding: 0 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -225,6 +228,7 @@ html, body {
   align-items: center;
   justify-content: center;
   height: 100%;
+  min-height: 180px;
   padding: 30px 20px;
   text-align: center;
 }
@@ -250,12 +254,12 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 36px;
+  height: 38px;
+  min-height: 38px;
   padding: 0 16px;
   background: rgba(14, 14, 18, 0.98);
   border-top: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  order: 3;
 }
 
 .footer-left {

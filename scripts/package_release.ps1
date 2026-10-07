@@ -2,6 +2,9 @@ param(
     [string]$OutputDir = "release-portable"
 )
 
+Stop-Process -Name "MiniRaycast" -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 300
+
 if (Test-Path $OutputDir) {
     Remove-Item -Recurse -Force $OutputDir
 }
