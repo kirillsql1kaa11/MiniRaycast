@@ -51,6 +51,15 @@ powershell -ExecutionPolicy Bypass -File scripts/package_release.ps1
 
 Готовый файл запускается из папки `release-portable/MiniRaycast.exe`. При запуске он сразу сворачивается в трей и доступен по горячей клавише.
 
+Структура портативной папки:
+```text
+release-portable/
+├── MiniRaycast.exe             # Исполняемый файл лаунчера
+├── WebView2Loader.dll          # Системная библиотека загрузчика WebView2
+├── plugins/                    # Python/Lua плагины
+└── scripts/system_controls.ps1 # Скрипт системных команд
+```
+
 ## Сборка из исходников
 
 1. Установка зависимостей:
