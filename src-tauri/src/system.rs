@@ -7,11 +7,18 @@ pub struct SystemManager {
 
 impl SystemManager {
     pub fn new() -> Self {
-        let candidates = vec![
-            PathBuf::from("scripts"),
-            PathBuf::from("../scripts"),
-            PathBuf::from("../../scripts"),
-        ];
+        let mut candidates = Vec::new();
+
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(parent) = exe.parent() {
+                candidates.push(parent.join("scripts"));
+                candidates.push(parent.join("../scripts"));
+            }
+        }
+
+        candidates.push(PathBuf::from("scripts"));
+        candidates.push(PathBuf::from("../scripts"));
+        candidates.push(PathBuf::from("../../scripts"));
 
         let mut found = PathBuf::from("scripts");
         for c in candidates {

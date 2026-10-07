@@ -8,10 +8,12 @@ use db::Database;
 use plugins::PluginRunner;
 use scanner::Scanner;
 use system::SystemManager;
-use tauri::{Manager, WebviewWindow};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use std::str::FromStr;
 use std::sync::Mutex;
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 pub struct AppState {
     pub db: Mutex<Database>,
@@ -43,12 +45,43 @@ pub fn force_focus_window(window: &WebviewWindow) {
     let _ = window.set_focus();
 }
 
+fn update_hotkey_from_tray(app: &AppHandle, new_hotkey: &str) {
+    if let Some(state) = app.try_state::<AppState>() {
+        let old_hotkey = if let Ok(db) = state.db.lock() {
+            db.get_setting("hotkey")
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "Alt+Space".to_string())
+        } else {
+            "Alt+Space".to_string()
+        };
+
+        if let Ok(old_sc) = Shortcut::from_str(&old_hotkey) {
+            app.global_shortcut().unregister(old_sc).ok();
+        }
+
+        if let Ok(new_sc) = Shortcut::from_str(new_hotkey) {
+            app.global_shortcut().register(new_sc).ok();
+        }
+
+        if let Ok(db) = state.db.lock() {
+            db.set_setting("hotkey", new_hotkey).ok();
+        }
+    }
+}
+
 pub fn run() {
     let db_dir = dirs::data_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join("MiniRaycast");
 
     let db = Database::new(db_dir).expect("Failed to initialize database");
+    let current_hotkey = db
+        .get_setting("hotkey")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Alt+Space".to_string());
+
     let scanner = Scanner::new();
     let plugins = PluginRunner::new();
     let system = SystemManager::new();
@@ -88,18 +121,144 @@ pub fn run() {
             commands::get_top_apps,
             commands::clear_history,
             commands::hide_window,
-            commands::toggle_window
+            commands::toggle_window,
+            commands::get_current_hotkey,
+            commands::change_hotkey
         ])
-        .setup(|app| {
-            if let Ok(shortcut) = Shortcut::from_str("Alt+Space") {
+        .setup(move |app| {
+            if let Ok(shortcut) = Shortcut::from_str(&current_hotkey) {
                 app.global_shortcut().register(shortcut).ok();
             }
 
+            let toggle_item = MenuItem::with_id(app, "toggle", "Show MiniRaycast", true, None::<&str>)?;
+            let hk_alt_space = CheckMenuItem::with_id(
+                app,
+                "hk_alt_space",
+                "Alt + Space",
+                true,
+                current_hotkey == "Alt+Space",
+                None::<&str>,
+            )?;
+            let hk_ctrl_space = CheckMenuItem::with_id(
+                app,
+                "hk_ctrl_space",
+                "Ctrl + Space",
+                true,
+                current_hotkey == "Ctrl+Space",
+                None::<&str>,
+            )?;
+            let hk_alt_k = CheckMenuItem::with_id(
+                app,
+                "hk_alt_k",
+                "Alt + K",
+                true,
+                current_hotkey == "Alt+K",
+                None::<&str>,
+            )?;
+            let hk_ctrl_shift = CheckMenuItem::with_id(
+                app,
+                "hk_ctrl_shift_space",
+                "Ctrl + Shift + Space",
+                true,
+                current_hotkey == "Ctrl+Shift+Space",
+                None::<&str>,
+            )?;
+
+            let hotkey_submenu = Submenu::with_items(
+                app,
+                "Change Hotkey",
+                true,
+                &[&hk_alt_space, &hk_ctrl_space, &hk_alt_k, &hk_ctrl_shift],
+            )?;
+
+            let sep = PredefinedMenuItem::separator(app)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit MiniRaycast", true, None::<&str>)?;
+
+            let menu = Menu::with_items(app, &[&toggle_item, &hotkey_submenu, &sep, &quit_item])?;
+
+            let mut tray_builder = TrayIconBuilder::new()
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    let id_str = event.id().as_ref();
+                    match id_str {
+                        "toggle" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let is_visible = window.is_visible().unwrap_or(false);
+                                if is_visible {
+                                    window.hide().ok();
+                                } else {
+                                    window.show().ok();
+                                    window.set_focus().ok();
+                                    force_focus_window(&window);
+                                }
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        "hk_alt_space" => {
+                            update_hotkey_from_tray(app, "Alt+Space");
+                        }
+                        "hk_ctrl_space" => {
+                            update_hotkey_from_tray(app, "Ctrl+Space");
+                        }
+                        "hk_alt_k" => {
+                            update_hotkey_from_tray(app, "Alt+K");
+                        }
+                        "hk_ctrl_shift_space" => {
+                            update_hotkey_from_tray(app, "Ctrl+Shift+Space");
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let is_visible = window.is_visible().unwrap_or(false);
+                            if is_visible {
+                                window.hide().ok();
+                            } else {
+                                window.show().ok();
+                                window.set_focus().ok();
+                                force_focus_window(&window);
+                            }
+                        }
+                    }
+                });
+
+            if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
+            }
+
+            tray_builder.build(app)?;
+
             if let Some(window) = app.get_webview_window("main") {
+                let win_clone = window.clone();
+                window.on_window_event(move |event| {
+                    match event {
+                        tauri::WindowEvent::Focused(false) => {
+                            win_clone.hide().ok();
+                        }
+                        tauri::WindowEvent::CloseRequested { api, .. } => {
+                            api.prevent_close();
+                            win_clone.hide().ok();
+                        }
+                        _ => {}
+                    }
+                });
+
                 window.show().ok();
                 window.set_focus().ok();
                 force_focus_window(&window);
             }
+
             Ok(())
         })
         .run(tauri::generate_context!())

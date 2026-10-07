@@ -2,6 +2,8 @@ target/
 node_modules/
 dist/
 dist-isolation/
+release-portable/
+*.exe
 *.db
 *.db-journal
 .DS_Store

@@ -41,6 +41,8 @@ function updateActionLabel() {
     actionLabel.textContent = "Copy";
   } else if (current.action === "timer") {
     actionLabel.textContent = "Start";
+  } else if (current.action === "set_hotkey") {
+    actionLabel.textContent = "Set";
   } else if (current.item_type === "system") {
     actionLabel.textContent = "Run";
   } else {
@@ -153,6 +155,8 @@ async function executeSelectedItem() {
   } else if (item.action === "timer") {
     const secs = parseInt(item.payload, 10);
     showToast(`Timer set for ${secs}s`);
+  } else if (item.action === "set_hotkey") {
+    showToast(`Hotkey set to ${item.payload}`);
   }
 
   try {

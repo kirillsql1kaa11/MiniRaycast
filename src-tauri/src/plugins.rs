@@ -9,11 +9,18 @@ pub struct PluginRunner {
 
 impl PluginRunner {
     pub fn new() -> Self {
-        let candidates = vec![
-            PathBuf::from("plugins"),
-            PathBuf::from("../plugins"),
-            PathBuf::from("../../plugins"),
-        ];
+        let mut candidates = Vec::new();
+
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(parent) = exe.parent() {
+                candidates.push(parent.join("plugins"));
+                candidates.push(parent.join("../plugins"));
+            }
+        }
+
+        candidates.push(PathBuf::from("plugins"));
+        candidates.push(PathBuf::from("../plugins"));
+        candidates.push(PathBuf::from("../../plugins"));
 
         let mut found = PathBuf::from("plugins");
         for c in candidates {

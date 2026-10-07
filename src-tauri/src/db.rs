@@ -42,6 +42,11 @@ impl Database {
                 launch_count INTEGER DEFAULT 1,
                 last_launched DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('hotkey', 'Alt+Space');
             CREATE INDEX IF NOT EXISTS idx_search_query ON search_history(query);
             CREATE INDEX IF NOT EXISTS idx_app_launch_count ON app_usage(launch_count DESC);"
         )?;
@@ -121,6 +126,28 @@ impl Database {
             }
         }
         Ok(list)
+    }
+
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        let conn = self.get_conn()?;
+        let mut stmt = conn.prepare("SELECT value FROM settings WHERE key = ?1")?;
+        let mut rows = stmt.query(params![key])?;
+        if let Some(row) = rows.next()? {
+            let val: String = row.get(0)?;
+            Ok(Some(val))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        let conn = self.get_conn()?;
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            params![key, value],
+        )?;
+        Ok(())
     }
 
     pub fn clear_all_history(&self) -> Result<()> {

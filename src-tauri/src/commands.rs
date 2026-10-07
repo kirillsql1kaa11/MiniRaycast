@@ -1,7 +1,9 @@
 use crate::db::{AppUsageRecord, HistoryRecord};
 use crate::scanner::LauncherItem;
 use crate::AppState;
-use tauri::{State, WebviewWindow};
+use std::str::FromStr;
+use tauri::{AppHandle, Manager, State, WebviewWindow};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[tauri::command]
 pub fn search(query: String, state: State<'_, AppState>) -> Vec<LauncherItem> {
@@ -58,6 +60,13 @@ pub fn execute_item(
         }
     }
 
+    if item.action == "set_hotkey" {
+        let app = window.app_handle().clone();
+        change_hotkey(item.payload.clone(), app, state)?;
+        window.hide().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
     if item.item_type == "app" {
         if let Ok(db) = state.db.lock() {
             db.record_launch(&item.id, &item.title, &item.payload, &item.item_type).ok();
@@ -103,5 +112,41 @@ pub fn toggle_window(window: WebviewWindow) -> Result<(), String> {
         window.set_focus().map_err(|e| e.to_string())?;
         crate::force_focus_window(&window);
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_current_hotkey(state: State<'_, AppState>) -> Result<String, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let hk = db.get_setting("hotkey").map_err(|e| e.to_string())?;
+    Ok(hk.unwrap_or_else(|| "Alt+Space".to_string()))
+}
+
+#[tauri::command]
+pub fn change_hotkey(
+    new_hotkey: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let new_shortcut = Shortcut::from_str(&new_hotkey).map_err(|e| format!("Invalid shortcut: {}", e))?;
+    
+    let old_hotkey = {
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        db.get_setting("hotkey")
+            .map_err(|e| e.to_string())?
+            .unwrap_or_else(|| "Alt+Space".to_string())
+    };
+
+    if let Ok(old_shortcut) = Shortcut::from_str(&old_hotkey) {
+        app.global_shortcut().unregister(old_shortcut).ok();
+    }
+
+    app.global_shortcut()
+        .register(new_shortcut)
+        .map_err(|e| format!("Failed to register {}: {}", new_hotkey, e))?;
+
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.set_setting("hotkey", &new_hotkey).map_err(|e| e.to_string())?;
+
     Ok(())
 }
