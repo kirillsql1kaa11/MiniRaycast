@@ -41,7 +41,7 @@ pub fn search(query: String, state: State<'_, AppState>) -> Vec<LauncherItem> {
         }
     }
 
-    items.truncate(25);
+    items.truncate(30);
     items
 }
 
@@ -108,7 +108,7 @@ pub fn toggle_window(window: WebviewWindow) -> Result<(), String> {
     if is_visible {
         window.hide().map_err(|e| e.to_string())?;
     } else {
-        crate::position_bottom_window(&window, 60);
+        crate::position_bottom_window(&window);
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
         crate::force_focus_window(&window);
@@ -117,8 +117,8 @@ pub fn toggle_window(window: WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn resize_and_position(height: u32, window: WebviewWindow) -> Result<(), String> {
-    crate::position_bottom_window(&window, height);
+pub fn resize_and_position(window: WebviewWindow) -> Result<(), String> {
+    crate::position_bottom_window(&window);
     Ok(())
 }
 

@@ -45,20 +45,20 @@ pub fn force_focus_window(window: &WebviewWindow) {
     let _ = window.set_focus();
 }
 
-pub fn position_bottom_window(window: &WebviewWindow, height: u32) {
+pub fn position_bottom_window(window: &WebviewWindow) {
     if let Ok(Some(monitor)) = window.current_monitor() {
-        let screen_size = monitor.size();
-        let screen_pos = monitor.position();
         let scale_factor = monitor.scale_factor();
+        let screen_size = monitor.size().to_logical::<f64>(scale_factor);
+        let screen_pos = monitor.position().to_logical::<f64>(scale_factor);
 
-        let width = 720.0 * scale_factor;
-        let phys_h = (height as f64) * scale_factor;
+        let width = 740.0;
+        let height = 540.0;
 
-        let x = screen_pos.x + ((screen_size.width as f64 - width) / 2.0) as i32;
-        let y = screen_pos.y + (screen_size.height as f64 - phys_h - (65.0 * scale_factor)) as i32;
+        let x = screen_pos.x + (screen_size.width - width) / 2.0;
+        let y = screen_pos.y + screen_size.height - height - 60.0;
 
-        let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize::new(width as u32, phys_h as u32)));
-        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)));
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize::new(width, height)));
+        let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(x, y)));
     }
 }
 
@@ -121,7 +121,7 @@ pub fn run() {
                             if is_visible {
                                 window.hide().ok();
                             } else {
-                                position_bottom_window(&window, 536);
+                                position_bottom_window(&window);
                                 window.show().ok();
                                 window.set_focus().ok();
                                 force_focus_window(&window);
@@ -207,7 +207,7 @@ pub fn run() {
                                 if is_visible {
                                     window.hide().ok();
                                 } else {
-                                    position_bottom_window(&window, 536);
+                                    position_bottom_window(&window);
                                     window.show().ok();
                                     window.set_focus().ok();
                                     force_focus_window(&window);
@@ -245,7 +245,7 @@ pub fn run() {
                             if is_visible {
                                 window.hide().ok();
                             } else {
-                                position_bottom_window(&window, 536);
+                                position_bottom_window(&window);
                                 window.show().ok();
                                 window.set_focus().ok();
                                 force_focus_window(&window);
@@ -275,7 +275,7 @@ pub fn run() {
                     }
                 });
 
-                position_bottom_window(&window, 536);
+                position_bottom_window(&window);
                 window.show().ok();
                 window.set_focus().ok();
                 force_focus_window(&window);

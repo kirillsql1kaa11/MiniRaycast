@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 pub struct SystemManager {
     scripts_dir: PathBuf,
 }
@@ -43,9 +46,11 @@ impl SystemManager {
     }
 
     fn launch_app(&self, path: &str) -> Result<(), String> {
-        let res = Command::new("cmd")
-            .args(["/C", "start", "", path])
-            .spawn();
+        let mut cmd = Command::new("cmd");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+
+        let res = cmd.args(["/C", "start", "", path]).spawn();
 
         match res {
             Ok(_) => Ok(()),
@@ -55,17 +60,22 @@ impl SystemManager {
 
     fn run_system_control(&self, control_action: &str) -> Result<(), String> {
         let script_path = self.scripts_dir.join("system_controls.ps1");
-        let res = Command::new("powershell")
-            .args([
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                script_path.to_str().unwrap_or("scripts/system_controls.ps1"),
-                "-Action",
-                control_action,
-            ])
-            .spawn();
+        let mut cmd = Command::new("powershell");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+
+        let res = cmd.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-WindowStyle",
+            "Hidden",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            script_path.to_str().unwrap_or("scripts/system_controls.ps1"),
+            "-Action",
+            control_action,
+        ]).spawn();
 
         match res {
             Ok(_) => Ok(()),
@@ -74,9 +84,11 @@ impl SystemManager {
     }
 
     fn open_uri(&self, uri: &str) -> Result<(), String> {
-        let res = Command::new("cmd")
-            .args(["/C", "start", uri])
-            .spawn();
+        let mut cmd = Command::new("cmd");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+
+        let res = cmd.args(["/C", "start", uri]).spawn();
 
         match res {
             Ok(_) => Ok(()),
