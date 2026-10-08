@@ -68,7 +68,10 @@ impl PluginRunner {
         let mut items = Vec::new();
 
         let has_digits = q.chars().any(|c| c.is_ascii_digit());
-        let currency_keywords = ["usd", "eur", "rub", "gbp", "cny", "jpy", "kzt", "try", "cad", "chf", "aud", "btc", "eth", "$", "€", "£", "₽", "¥", "₸"];
+        let currency_keywords = [
+            "usd", "eur", "rub", "gbp", "cny", "jpy", "kzt", "try", "cad", "chf", "aud", "btc", "eth",
+            "$", "€", "£", "₽", "¥", "₸", "доллар", "евро", "рубл", "тенге", "юан"
+        ];
         let is_currency_candidate = has_digits && currency_keywords.iter().any(|k| q_lower.contains(k));
 
         if is_currency_candidate {
@@ -78,18 +81,22 @@ impl PluginRunner {
                         items.push(LauncherItem {
                             id: "currency_result".to_string(),
                             title: formatted.to_string(),
-                            subtitle: "Press Enter to copy result".to_string(),
+                            subtitle: "Нажмите Enter для копирования".to_string(),
                             item_type: "currency".to_string(),
                             action: "copy".to_string(),
                             payload: formatted.to_string(),
-                            badge: Some("Currency".to_string()),
+                            badge: Some("Валюта".to_string()),
+                            keywords: None,
                         });
                     }
                 }
             }
         }
 
-        let unit_keywords = ["km", "mi", "mile", "ft", "feet", "inch", "kg", "lb", "pound", "oz", "gb", "mb", "kb", "celsius", "fahrenheit"];
+        let unit_keywords = [
+            "km", "mi", "mile", "ft", "feet", "inch", "kg", "lb", "pound", "oz", "gb", "mb", "kb",
+            "celsius", "fahrenheit", "км", "миль", "фунт", "кг", "градус"
+        ];
         let is_unit_candidate = has_digits && unit_keywords.iter().any(|k| q_lower.contains(k));
 
         if is_unit_candidate {
@@ -99,11 +106,12 @@ impl PluginRunner {
                         items.push(LauncherItem {
                             id: "units_result".to_string(),
                             title: formatted.to_string(),
-                            subtitle: "Press Enter to copy result".to_string(),
+                            subtitle: "Нажмите Enter для копирования".to_string(),
                             item_type: "unit".to_string(),
                             action: "copy".to_string(),
                             payload: formatted.to_string(),
-                            badge: Some("Unit".to_string()),
+                            badge: Some("Конвертер".to_string()),
+                            keywords: None,
                         });
                     }
                 }
@@ -116,12 +124,13 @@ impl PluginRunner {
                     if let (Some(formatted), Some(secs)) = (json["formatted"].as_str(), json["seconds"].as_i64()) {
                         items.push(LauncherItem {
                             id: "timer_result".to_string(),
-                            title: format!("Set {}", formatted),
-                            subtitle: "Press Enter to start countdown".to_string(),
+                            title: format!("Таймер: {}", formatted),
+                            subtitle: "Нажмите Enter для запуска таймера".to_string(),
                             item_type: "timer".to_string(),
                             action: "timer".to_string(),
                             payload: secs.to_string(),
-                            badge: Some("Timer".to_string()),
+                            badge: Some("Таймер".to_string()),
+                            keywords: None,
                         });
                     }
                 }
@@ -140,7 +149,8 @@ impl PluginRunner {
                             item_type: "calc".to_string(),
                             action: "copy".to_string(),
                             payload: result.to_string(),
-                            badge: Some("Text".to_string()),
+                            badge: Some("Текст".to_string()),
+                            keywords: None,
                         });
                     }
                 }
@@ -156,11 +166,12 @@ impl PluginRunner {
                             items.push(LauncherItem {
                                 id: "calc_result".to_string(),
                                 title: format!("= {}", result),
-                                subtitle: format!("Expression: {}", q),
+                                subtitle: format!("Выражение: {}", q),
                                 item_type: "calc".to_string(),
                                 action: "copy".to_string(),
                                 payload: result.to_string(),
-                                badge: Some("Calculator".to_string()),
+                                badge: Some("Калькулятор".to_string()),
+                                keywords: None,
                             });
                         }
                     }

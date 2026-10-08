@@ -6,6 +6,7 @@ let items: LauncherItem[] = [];
 let selectedIndex = 0;
 let debounceTimer: number | null = null;
 let toastTimer: number | null = null;
+let currentSearchQuery = "";
 
 const searchInput = document.getElementById("search-input") as HTMLInputElement;
 const resultsList = document.getElementById("results-list") as HTMLDivElement;
@@ -45,22 +46,32 @@ function showToast(message: string) {
   }, 1800);
 }
 
+function formatItemCount(count: number): string {
+  if (count % 10 === 1 && count % 100 !== 11) {
+    return `${count} элемент`;
+  }
+  if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+    return `${count} элемента`;
+  }
+  return `${count} элементов`;
+}
+
 function updateActionLabel() {
   const current = items[selectedIndex];
   if (!current) {
-    actionLabel.textContent = "Open";
+    actionLabel.textContent = "Открыть";
     return;
   }
   if (current.action === "copy") {
-    actionLabel.textContent = "Copy";
+    actionLabel.textContent = "Скопировать";
   } else if (current.action === "timer") {
-    actionLabel.textContent = "Start";
+    actionLabel.textContent = "Запустить";
   } else if (current.action === "set_hotkey") {
-    actionLabel.textContent = "Set";
+    actionLabel.textContent = "Назначить";
   } else if (current.item_type === "system") {
-    actionLabel.textContent = "Run";
+    actionLabel.textContent = "Выполнить";
   } else {
-    actionLabel.textContent = "Open";
+    actionLabel.textContent = "Открыть";
   }
 }
 
@@ -70,14 +81,14 @@ function renderItems() {
   if (items.length === 0) {
     resultsList.style.display = "none";
     emptyState.style.display = "flex";
-    metaCount.textContent = "0 items";
+    metaCount.textContent = "0 элементов";
     updateActionLabel();
     return;
   }
 
   emptyState.style.display = "none";
   resultsList.style.display = "flex";
-  metaCount.textContent = `${items.length} ${items.length === 1 ? "item" : "items"}`;
+  metaCount.textContent = formatItemCount(items.length);
 
   items.forEach((item, index) => {
     const itemEl = document.createElement("div");
@@ -144,11 +155,19 @@ function escapeHtml(str: string): string {
 }
 
 async function fetchSearch(query: string) {
+  currentSearchQuery = query;
   try {
-    items = await invoke<LauncherItem[]>("search", { query });
+    const res = await invoke<LauncherItem[]>("search", { query });
+    if (currentSearchQuery !== query) {
+      return;
+    }
+    items = res;
     selectedIndex = 0;
     renderItems();
   } catch {
+    if (currentSearchQuery !== query) {
+      return;
+    }
     items = [];
     selectedIndex = 0;
     renderItems();
@@ -162,15 +181,15 @@ async function executeSelectedItem() {
   if (item.action === "copy") {
     try {
       await navigator.clipboard.writeText(item.payload);
-      showToast("Copied to clipboard");
+      showToast("Скопировано в буфер");
     } catch {
-      showToast("Failed to copy");
+      showToast("Не удалось скопировать");
     }
   } else if (item.action === "timer") {
     const secs = parseInt(item.payload, 10);
-    showToast(`Timer set for ${secs}s`);
+    showToast(`Таймер запущен на ${secs} сек.`);
   } else if (item.action === "set_hotkey") {
-    showToast(`Hotkey set to ${item.payload}`);
+    showToast(`Хоткей: ${item.payload}`);
     refreshHotkey();
   }
 
@@ -180,7 +199,7 @@ async function executeSelectedItem() {
       query: searchInput.value,
     });
   } catch {
-    showToast("Execution error");
+    showToast("Ошибка запуска");
   }
 }
 
@@ -188,7 +207,7 @@ searchInput.addEventListener("input", () => {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = window.setTimeout(() => {
     fetchSearch(searchInput.value);
-  }, 30);
+  }, 25);
 });
 
 window.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -216,10 +235,15 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
       try {
         invoke("hide_window");
       } catch {
-        showToast("Window hidden");
+        showToast("Окно скрыто");
       }
     }
   }
+});
+
+window.addEventListener("focus", () => {
+  searchInput.focus();
+  refreshHotkey();
 });
 
 refreshHotkey();

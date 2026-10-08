@@ -6,6 +6,7 @@ export interface LauncherItem {
   action: string;
   payload: string;
   badge?: string;
+  keywords?: string[];
 }
 
 export interface HistoryRecord {

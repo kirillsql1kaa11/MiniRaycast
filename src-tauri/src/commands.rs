@@ -29,11 +29,12 @@ pub fn search(query: String, state: State<'_, AppState>) -> Vec<LauncherItem> {
                         LauncherItem {
                             id: format!("frec_{}", app.item_id),
                             title: app.title,
-                            subtitle: format!("Launched {} times", app.launch_count),
+                            subtitle: format!("Запусков: {}", app.launch_count),
                             item_type: app.item_type,
                             action: "launch".to_string(),
                             payload: app.path,
-                            badge: Some("Frequent".to_string()),
+                            badge: Some("Часто".to_string()),
+                            keywords: None,
                         },
                     );
                 }
@@ -41,7 +42,7 @@ pub fn search(query: String, state: State<'_, AppState>) -> Vec<LauncherItem> {
         }
     }
 
-    items.truncate(30);
+    items.truncate(60);
     items
 }
 

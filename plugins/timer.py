@@ -18,7 +18,7 @@ def parse_timer(query: str) -> dict:
         seconds = amount * 3600
     elif unit in ["s", "сек", "sec", "секунд"]:
         seconds = amount
-    minutes = seconds // 60
+    minutes = int(seconds / 60)
     remaining_secs = seconds % 60
     time_str = f"{minutes}m {remaining_secs}s" if minutes else f"{remaining_secs}s"
     return {

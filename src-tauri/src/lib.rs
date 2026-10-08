@@ -149,7 +149,7 @@ pub fn run() {
                 app.global_shortcut().register(shortcut).ok();
             }
 
-            let toggle_item = MenuItem::with_id(app, "toggle", "Show MiniRaycast", true, None::<&str>)?;
+            let toggle_item = MenuItem::with_id(app, "toggle", "Показать MiniRaycast", true, None::<&str>)?;
             let hk_alt_space = CheckMenuItem::with_id(
                 app,
                 "hk_alt_space",
@@ -185,13 +185,13 @@ pub fn run() {
 
             let hotkey_submenu = Submenu::with_items(
                 app,
-                "Change Hotkey",
+                "Сменить горячую клавишу",
                 true,
                 &[&hk_alt_space, &hk_ctrl_space, &hk_alt_k, &hk_ctrl_shift],
             )?;
 
             let sep = PredefinedMenuItem::separator(app)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit MiniRaycast", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Выйти из MiniRaycast", true, None::<&str>)?;
 
             let menu = Menu::with_items(app, &[&toggle_item, &hotkey_submenu, &sep, &quit_item])?;
 
