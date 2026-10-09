@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "MiniRaycast",
-        "width": 720,
-        "height": 536,
+        "width": 780,
+        "height": 550,
         "resizable": false,
         "fullscreen": false,
         "transparent": true,

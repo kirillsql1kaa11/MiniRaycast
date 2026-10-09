@@ -9,6 +9,12 @@ export interface LauncherItem {
   keywords?: string[];
 }
 
+export interface AppearanceSettings {
+  theme: string;
+  opacity: string;
+  blur: string;
+}
+
 export interface HistoryRecord {
   id: number;
   query: string;

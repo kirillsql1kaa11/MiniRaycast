@@ -6,30 +6,53 @@
     <title>MiniRaycast</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
-  <body>
+  <body data-theme="oled">
     <div id="app" class="launcher-container">
       <header class="search-header">
         <div class="search-icon" id="search-icon-slot"></div>
         <input
           id="search-input"
           type="text"
-          placeholder="Поиск или команда..."
+          placeholder="Поиск, kill, сеть, пресеты..."
           autocomplete="off"
           spellcheck="false"
           autofocus
         />
         <div class="header-badges" id="header-badges">
+          <span class="hotkey-pill" id="theme-pill">OLED</span>
           <span class="hotkey-pill" id="hotkey-pill">Alt+Space</span>
         </div>
       </header>
 
-      <main class="results-container" id="results-container">
-        <div class="results-list" id="results-list"></div>
-        <div class="empty-state" id="empty-state" style="display: none;">
-          <div class="empty-icon" id="empty-icon-slot"></div>
-          <div class="empty-title">Ничего не найдено</div>
-          <div class="empty-subtitle">Попробуйте ввести расчет, команду или имя приложения</div>
-        </div>
+      <main class="main-content" id="main-content">
+        <section class="results-container" id="results-container">
+          <div class="results-list" id="results-list"></div>
+          <div class="empty-state" id="empty-state" style="display: none;">
+            <div class="empty-icon" id="empty-icon-slot"></div>
+            <div class="empty-title">Ничего не найдено</div>
+            <div class="empty-subtitle">Попробуйте ввести kill, ping, flushdns, ip или имя приложения</div>
+          </div>
+        </section>
+
+        <aside class="preview-panel" id="preview-panel">
+          <div class="preview-scroll" id="preview-scroll">
+            <div class="preview-header" id="preview-header">
+              <div class="preview-icon-box" id="preview-icon-box"></div>
+              <div class="preview-titles">
+                <div class="preview-main-title" id="preview-title"></div>
+                <div class="preview-main-subtitle" id="preview-subtitle"></div>
+              </div>
+            </div>
+            <div class="preview-divider"></div>
+            <div class="preview-body" id="preview-body"></div>
+          </div>
+          <div class="preview-footer" id="preview-footer">
+            <button class="preview-action-btn" id="preview-action-btn">
+              <span id="preview-action-btn-text">Выполнить</span>
+              <span class="preview-action-shortcut">↵</span>
+            </button>
+          </div>
+        </aside>
       </main>
 
       <footer class="launcher-footer" id="launcher-footer">
@@ -41,6 +64,11 @@
             <span class="key-cap">↑</span>
             <span class="key-cap">↓</span>
             <span class="key-label">Навигация</span>
+          </div>
+          <div class="shortcut-pill" id="preview-toggle-pill" style="cursor: pointer;">
+            <span class="key-cap">Ctrl</span>
+            <span class="key-cap">P</span>
+            <span class="key-label" id="preview-toggle-label">Превью</span>
           </div>
           <div class="shortcut-pill">
             <span class="key-cap">↵</span>

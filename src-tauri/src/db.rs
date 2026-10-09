@@ -47,6 +47,9 @@ impl Database {
                 value TEXT NOT NULL
             );
             INSERT OR IGNORE INTO settings (key, value) VALUES ('hotkey', 'Alt+Space');
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'oled');
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('opacity', '94');
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('blur', '32');
             CREATE INDEX IF NOT EXISTS idx_search_query ON search_history(query);
             CREATE INDEX IF NOT EXISTS idx_app_launch_count ON app_usage(launch_count DESC);"
         )?;

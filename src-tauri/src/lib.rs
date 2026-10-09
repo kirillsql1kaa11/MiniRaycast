@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 pub struct AppState {
@@ -51,8 +51,8 @@ pub fn position_bottom_window(window: &WebviewWindow) {
         let screen_size = monitor.size().to_logical::<f64>(scale_factor);
         let screen_pos = monitor.position().to_logical::<f64>(scale_factor);
 
-        let width = 740.0;
-        let height = 540.0;
+        let width = 780.0;
+        let height = 550.0;
 
         let x = screen_pos.x + (screen_size.width - width) / 2.0;
         let y = screen_pos.y + screen_size.height - height - 60.0;
@@ -87,6 +87,17 @@ fn update_hotkey_from_tray(app: &AppHandle, new_hotkey: &str) {
     }
 }
 
+fn update_appearance_from_tray(app: &AppHandle, key: &str, value: &str) {
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Ok(db) = state.db.lock() {
+            db.set_setting(key, value).ok();
+        }
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.emit("appearance-changed", serde_json::json!({ "key": key, "value": value }));
+    }
+}
+
 pub fn run() {
     let db_dir = dirs::data_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
@@ -98,6 +109,21 @@ pub fn run() {
         .ok()
         .flatten()
         .unwrap_or_else(|| "Alt+Space".to_string());
+    let current_theme = db
+        .get_setting("theme")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "oled".to_string());
+    let current_opacity = db
+        .get_setting("opacity")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "94".to_string());
+    let current_blur = db
+        .get_setting("blur")
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "32".to_string());
 
     let scanner = Scanner::new();
     let plugins = PluginRunner::new();
@@ -142,7 +168,12 @@ pub fn run() {
             commands::toggle_window,
             commands::resize_and_position,
             commands::get_current_hotkey,
-            commands::change_hotkey
+            commands::change_hotkey,
+            commands::get_appearance_settings,
+            commands::set_appearance_setting,
+            commands::kill_process_by_pid,
+            commands::run_network_command,
+            commands::open_folder_path
         ])
         .setup(move |app| {
             if let Ok(shortcut) = Shortcut::from_str(&current_hotkey) {
@@ -150,6 +181,7 @@ pub fn run() {
             }
 
             let toggle_item = MenuItem::with_id(app, "toggle", "Показать MiniRaycast", true, None::<&str>)?;
+
             let hk_alt_space = CheckMenuItem::with_id(
                 app,
                 "hk_alt_space",
@@ -190,10 +222,141 @@ pub fn run() {
                 &[&hk_alt_space, &hk_ctrl_space, &hk_alt_k, &hk_ctrl_shift],
             )?;
 
+            let theme_oled = CheckMenuItem::with_id(
+                app,
+                "theme_oled",
+                "OLED Black",
+                true,
+                current_theme == "oled",
+                None::<&str>,
+            )?;
+            let theme_midnight = CheckMenuItem::with_id(
+                app,
+                "theme_midnight",
+                "Midnight Blue",
+                true,
+                current_theme == "midnight",
+                None::<&str>,
+            )?;
+            let theme_slate = CheckMenuItem::with_id(
+                app,
+                "theme_slate",
+                "Slate Gray",
+                true,
+                current_theme == "slate",
+                None::<&str>,
+            )?;
+            let theme_monokai = CheckMenuItem::with_id(
+                app,
+                "theme_monokai",
+                "Monokai",
+                true,
+                current_theme == "monokai",
+                None::<&str>,
+            )?;
+
+            let theme_submenu = Submenu::with_items(
+                app,
+                "Тема оформления",
+                true,
+                &[&theme_oled, &theme_midnight, &theme_slate, &theme_monokai],
+            )?;
+
+            let op_100 = CheckMenuItem::with_id(
+                app,
+                "op_100",
+                "100% (Непрозрачный)",
+                true,
+                current_opacity == "100",
+                None::<&str>,
+            )?;
+            let op_90 = CheckMenuItem::with_id(
+                app,
+                "op_90",
+                "90% (Стандарт)",
+                true,
+                current_opacity == "94" || current_opacity == "90",
+                None::<&str>,
+            )?;
+            let op_75 = CheckMenuItem::with_id(
+                app,
+                "op_75",
+                "75% (Умеренная)",
+                true,
+                current_opacity == "75",
+                None::<&str>,
+            )?;
+            let op_60 = CheckMenuItem::with_id(
+                app,
+                "op_60",
+                "60% (Высокая)",
+                true,
+                current_opacity == "60",
+                None::<&str>,
+            )?;
+
+            let opacity_submenu = Submenu::with_items(
+                app,
+                "Прозрачность фона",
+                true,
+                &[&op_100, &op_90, &op_75, &op_60],
+            )?;
+
+            let blur_0 = CheckMenuItem::with_id(
+                app,
+                "blur_0",
+                "Без размытия (0px)",
+                true,
+                current_blur == "0",
+                None::<&str>,
+            )?;
+            let blur_16 = CheckMenuItem::with_id(
+                app,
+                "blur_16",
+                "Легкое (16px)",
+                true,
+                current_blur == "16",
+                None::<&str>,
+            )?;
+            let blur_32 = CheckMenuItem::with_id(
+                app,
+                "blur_32",
+                "Стандарт (32px)",
+                true,
+                current_blur == "32",
+                None::<&str>,
+            )?;
+            let blur_48 = CheckMenuItem::with_id(
+                app,
+                "blur_48",
+                "Максимальное (48px)",
+                true,
+                current_blur == "48",
+                None::<&str>,
+            )?;
+
+            let blur_submenu = Submenu::with_items(
+                app,
+                "Размытие фона (Blur)",
+                true,
+                &[&blur_0, &blur_16, &blur_32, &blur_48],
+            )?;
+
             let sep = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "quit", "Выйти из MiniRaycast", true, None::<&str>)?;
 
-            let menu = Menu::with_items(app, &[&toggle_item, &hotkey_submenu, &sep, &quit_item])?;
+            let menu = Menu::with_items(
+                app,
+                &[
+                    &toggle_item,
+                    &hotkey_submenu,
+                    &theme_submenu,
+                    &opacity_submenu,
+                    &blur_submenu,
+                    &sep,
+                    &quit_item,
+                ],
+            )?;
 
             let mut tray_builder = TrayIconBuilder::new()
                 .menu(&menu)
@@ -228,6 +391,42 @@ pub fn run() {
                         }
                         "hk_ctrl_shift_space" => {
                             update_hotkey_from_tray(app, "Ctrl+Shift+Space");
+                        }
+                        "theme_oled" => {
+                            update_appearance_from_tray(app, "theme", "oled");
+                        }
+                        "theme_midnight" => {
+                            update_appearance_from_tray(app, "theme", "midnight");
+                        }
+                        "theme_slate" => {
+                            update_appearance_from_tray(app, "theme", "slate");
+                        }
+                        "theme_monokai" => {
+                            update_appearance_from_tray(app, "theme", "monokai");
+                        }
+                        "op_100" => {
+                            update_appearance_from_tray(app, "opacity", "100");
+                        }
+                        "op_90" => {
+                            update_appearance_from_tray(app, "opacity", "94");
+                        }
+                        "op_75" => {
+                            update_appearance_from_tray(app, "opacity", "75");
+                        }
+                        "op_60" => {
+                            update_appearance_from_tray(app, "opacity", "60");
+                        }
+                        "blur_0" => {
+                            update_appearance_from_tray(app, "blur", "0");
+                        }
+                        "blur_16" => {
+                            update_appearance_from_tray(app, "blur", "16");
+                        }
+                        "blur_32" => {
+                            update_appearance_from_tray(app, "blur", "32");
+                        }
+                        "blur_48" => {
+                            update_appearance_from_tray(app, "blur", "48");
                         }
                         _ => {}
                     }
