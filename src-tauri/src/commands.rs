@@ -161,7 +161,13 @@ pub fn execute_item(
         return Ok(());
     }
 
-    if item.action == "fill_search" || item.action == "copy" || item.action == "timer" {
+    if item.action == "fill_search" || item.action == "copy" || item.action == "timer" || item.action == "speedtest" {
+        return Ok(());
+    }
+
+    if item.action == "toggle_autostart" {
+        let cur = crate::system::is_autostart_enabled();
+        crate::system::set_autostart_enabled(!cur)?;
         return Ok(());
     }
 
@@ -215,6 +221,24 @@ pub fn run_network_command(
 #[tauri::command]
 pub fn open_folder_path(path: String, state: State<'_, AppState>) -> Result<(), String> {
     state.system.execute_action("open_folder", &path)
+}
+
+#[tauri::command]
+pub fn run_speedtest_command(state: State<'_, AppState>) -> Result<String, String> {
+    state.system.run_speedtest()
+}
+
+#[tauri::command]
+pub fn get_autostart_status() -> bool {
+    crate::system::is_autostart_enabled()
+}
+
+#[tauri::command]
+pub fn toggle_autostart() -> Result<bool, String> {
+    let current = crate::system::is_autostart_enabled();
+    let new_state = !current;
+    crate::system::set_autostart_enabled(new_state)?;
+    Ok(new_state)
 }
 
 #[tauri::command]

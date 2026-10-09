@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::{Path, PathBuf};
+use sublime_fuzzy::best_match;
 use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,6 +19,7 @@ pub struct LauncherItem {
 pub struct Scanner {
     cached_apps: Vec<LauncherItem>,
     system_commands: Vec<LauncherItem>,
+    cached_recent_docs: Vec<LauncherItem>,
 }
 
 impl Scanner {
@@ -234,6 +236,56 @@ impl Scanner {
                 keywords: Some(vec!["kill".to_string(), "закрыть".to_string(), "процессы".to_string(), "память".to_string(), "cpu".to_string(), "ram".to_string(), "завершить".to_string()]),
             },
             LauncherItem {
+                id: "net_speedtest".to_string(),
+                title: "Скорость интернета (Speedtest)".to_string(),
+                subtitle: "Замер пинга, входящей и исходящей скорости без рекламы".to_string(),
+                item_type: "network".to_string(),
+                action: "speedtest".to_string(),
+                payload: "speedtest".to_string(),
+                badge: Some("Тест".to_string()),
+                keywords: Some(vec![
+                    "speedtest".to_string(),
+                    "скорость".to_string(),
+                    "скорость интернета".to_string(),
+                    "интернет".to_string(),
+                    "speed".to_string(),
+                    "тест".to_string(),
+                    "замер".to_string(),
+                ]),
+            },
+            LauncherItem {
+                id: "cmd_autostart_toggle".to_string(),
+                title: "Автозагрузка вместе с системой".to_string(),
+                subtitle: "Включить или отключить автозапуск приложения через реестр Windows".to_string(),
+                item_type: "system".to_string(),
+                action: "toggle_autostart".to_string(),
+                payload: "autostart".to_string(),
+                badge: Some("Система".to_string()),
+                keywords: Some(vec![
+                    "автозагрузка".to_string(),
+                    "автозапуск".to_string(),
+                    "autostart".to_string(),
+                    "реестр".to_string(),
+                    "старт".to_string(),
+                ]),
+            },
+            LauncherItem {
+                id: "cmd_recent_docs".to_string(),
+                title: "Недавние документы и файлы".to_string(),
+                subtitle: "Открыть список недавних файлов Word, Excel, PDF и проектов".to_string(),
+                item_type: "document".to_string(),
+                action: "fill_search".to_string(),
+                payload: "recent".to_string(),
+                badge: Some("Файлы".to_string()),
+                keywords: Some(vec![
+                    "recent".to_string(),
+                    "недавние".to_string(),
+                    "документы".to_string(),
+                    "файлы".to_string(),
+                    "открыть".to_string(),
+                ]),
+            },
+            LauncherItem {
                 id: "net_flushdns".to_string(),
                 title: "Сброс кэша DNS (flushdns)".to_string(),
                 subtitle: "Очистить кэш DNS-клиента (ipconfig /flushdns)".to_string(),
@@ -328,6 +380,7 @@ impl Scanner {
         let mut scanner = Self {
             cached_apps: Vec::new(),
             system_commands,
+            cached_recent_docs: Vec::new(),
         };
         scanner.refresh_cache();
         scanner
@@ -358,6 +411,84 @@ impl Scanner {
         }
 
         self.cached_apps = apps;
+        self.scan_recent_documents();
+    }
+
+    fn scan_recent_documents(&mut self) {
+        let mut docs = Vec::new();
+        let mut recent_dir = None;
+
+        if let Ok(app_data) = env::var("APPDATA") {
+            let p = PathBuf::from(app_data).join("Microsoft\\Windows\\Recent");
+            if p.exists() {
+                recent_dir = Some(p);
+            }
+        }
+
+        if let Some(dir) = recent_dir {
+            let mut entries: Vec<_> = WalkDir::new(dir)
+                .max_depth(1)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_file())
+                .collect();
+
+            entries.sort_by(|a, b| {
+                let time_a = a.metadata().ok().and_then(|m| m.modified().ok()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let time_b = b.metadata().ok().and_then(|m| m.modified().ok()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                time_b.cmp(&time_a)
+            });
+
+            for entry in entries.into_iter().take(50) {
+                let path = entry.path();
+                let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                if file_name.is_empty() || !file_name.ends_with(".lnk") {
+                    continue;
+                }
+
+                let clean_name = file_name.trim_end_matches(".lnk");
+                let path_str = path.to_string_lossy().to_string();
+
+                let ext = Path::new(clean_name)
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+
+                let (badge, doc_type) = match ext.as_str() {
+                    "docx" | "doc" => ("Word", "Документ Word"),
+                    "xlsx" | "xls" | "csv" => ("Excel", "Таблица Excel"),
+                    "pptx" | "ppt" => ("PowerPoint", "Презентация PowerPoint"),
+                    "pdf" => ("PDF", "Документ PDF"),
+                    "txt" | "md" | "json" | "rs" | "ts" | "py" => ("Текст", "Текстовый файл"),
+                    "jpg" | "png" | "jpeg" | "webp" | "gif" => ("Фото", "Изображение"),
+                    "zip" | "rar" | "7z" => ("Архив", "Архив"),
+                    "mp4" | "mkv" | "avi" => ("Видео", "Видеофайл"),
+                    "mp3" | "wav" | "flac" => ("Аудио", "Аудиозапись"),
+                    _ => ("Файл", "Недавний документ"),
+                };
+
+                docs.push(LauncherItem {
+                    id: format!("recent_{}", clean_name),
+                    title: clean_name.to_string(),
+                    subtitle: format!("{} (Недавний файл)", doc_type),
+                    item_type: "document".to_string(),
+                    action: "launch".to_string(),
+                    payload: path_str,
+                    badge: Some(badge.to_string()),
+                    keywords: Some(vec![
+                        "recent".to_string(),
+                        "недавние".to_string(),
+                        "документы".to_string(),
+                        "файлы".to_string(),
+                        ext,
+                        clean_name.to_string(),
+                    ]),
+                });
+            }
+        }
+
+        self.cached_recent_docs = docs;
     }
 
     fn scan_directory(
@@ -405,43 +536,82 @@ impl Scanner {
         }
     }
 
+    fn calculate_score(query: &str, item: &LauncherItem) -> Option<isize> {
+        let title_lower = item.title.to_lowercase();
+        let mut best: Option<isize> = None;
+
+        if title_lower == query {
+            return Some(6000);
+        }
+
+        if title_lower.starts_with(query) {
+            let s = 3500 - (title_lower.len() as isize * 5);
+            best = Some(best.map_or(s, |p| p.max(s)));
+        } else if title_lower.contains(query) {
+            let s = 2500 - (title_lower.len() as isize * 5);
+            best = Some(best.map_or(s, |p| p.max(s)));
+        }
+
+        if let Some(m) = best_match(query, &title_lower) {
+            let s = m.score() * 4;
+            best = Some(best.map_or(s, |p| p.max(s)));
+        }
+
+        let sub_lower = item.subtitle.to_lowercase();
+        if sub_lower.contains(query) {
+            let s = 1200;
+            best = Some(best.map_or(s, |p| p.max(s)));
+        } else if let Some(m) = best_match(query, &sub_lower) {
+            let s = m.score() * 2;
+            best = Some(best.map_or(s, |p| p.max(s)));
+        }
+
+        if let Some(kws) = &item.keywords {
+            for kw in kws {
+                let kw_lower = kw.to_lowercase();
+                if kw_lower == query || kw_lower.starts_with(query) {
+                    let s = 1800;
+                    best = Some(best.map_or(s, |p| p.max(s)));
+                } else if kw_lower.contains(query) {
+                    let s = 1400;
+                    best = Some(best.map_or(s, |p| p.max(s)));
+                } else if let Some(m) = best_match(query, &kw_lower) {
+                    let s = m.score() * 2;
+                    best = Some(best.map_or(s, |p| p.max(s)));
+                }
+            }
+        }
+
+        best
+    }
+
     pub fn search(&self, query: &str) -> Vec<LauncherItem> {
         let q = query.trim().to_lowercase();
         if q.is_empty() {
             let mut top = Vec::new();
             top.extend(self.system_commands.iter().cloned());
+            top.extend(self.cached_recent_docs.iter().take(12).cloned());
             top.extend(self.cached_apps.iter().cloned());
             return top;
         }
 
-        let mut results = Vec::new();
+        if q == "recent" || q == "недавние" || q == "документы" || q == "файлы" {
+            return self.cached_recent_docs.clone();
+        }
 
-        for cmd in &self.system_commands {
-            let mut matched = cmd.title.to_lowercase().contains(&q)
-                || cmd.subtitle.to_lowercase().contains(&q)
-                || cmd.payload.to_lowercase().contains(&q)
-                || cmd.id.to_lowercase().contains(&q);
+        let mut scored: Vec<(isize, LauncherItem)> = Vec::new();
 
-            if !matched {
-                if let Some(kws) = &cmd.keywords {
-                    matched = kws.iter().any(|k| k.to_lowercase().contains(&q));
-                }
-            }
+        let all_items = self.system_commands.iter()
+            .chain(self.cached_recent_docs.iter())
+            .chain(self.cached_apps.iter());
 
-            if matched {
-                results.push(cmd.clone());
+        for item in all_items {
+            if let Some(score) = Self::calculate_score(&q, item) {
+                scored.push((score, item.clone()));
             }
         }
 
-        for app in &self.cached_apps {
-            let title_lower = app.title.to_lowercase();
-            if title_lower.starts_with(&q) {
-                results.push(app.clone());
-            } else if title_lower.contains(&q) {
-                results.push(app.clone());
-            }
-        }
-
-        results
+        scored.sort_by(|a, b| b.0.cmp(&a.0));
+        scored.into_iter().map(|(_, item)| item).collect()
     }
 }

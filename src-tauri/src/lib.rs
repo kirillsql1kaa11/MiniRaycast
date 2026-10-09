@@ -173,7 +173,10 @@ pub fn run() {
             commands::set_appearance_setting,
             commands::kill_process_by_pid,
             commands::run_network_command,
-            commands::open_folder_path
+            commands::open_folder_path,
+            commands::run_speedtest_command,
+            commands::get_autostart_status,
+            commands::toggle_autostart
         ])
         .setup(move |app| {
             if let Ok(shortcut) = Shortcut::from_str(&current_hotkey) {
@@ -342,6 +345,16 @@ pub fn run() {
                 &[&blur_0, &blur_16, &blur_32, &blur_48],
             )?;
 
+            let is_autostart = system::is_autostart_enabled();
+            let autostart_item = CheckMenuItem::with_id(
+                app,
+                "autostart_toggle",
+                "Автозагрузка при старте Windows",
+                true,
+                is_autostart,
+                None::<&str>,
+            )?;
+
             let sep = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "quit", "Выйти из MiniRaycast", true, None::<&str>)?;
 
@@ -349,6 +362,7 @@ pub fn run() {
                 app,
                 &[
                     &toggle_item,
+                    &autostart_item,
                     &hotkey_submenu,
                     &theme_submenu,
                     &opacity_submenu,
@@ -379,6 +393,10 @@ pub fn run() {
                         }
                         "quit" => {
                             app.exit(0);
+                        }
+                        "autostart_toggle" => {
+                            let current = system::is_autostart_enabled();
+                            let _ = system::set_autostart_enabled(!current);
                         }
                         "hk_alt_space" => {
                             update_hotkey_from_tray(app, "Alt+Space");

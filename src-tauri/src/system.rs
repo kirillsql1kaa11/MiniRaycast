@@ -47,6 +47,11 @@ impl SystemManager {
                 self.run_network_control(act, target).map(|_| ())
             }
             "open_uri" => self.open_uri(payload),
+            "speedtest" => Ok(()),
+            "toggle_autostart" => {
+                let current = is_autostart_enabled();
+                set_autostart_enabled(!current)
+            }
             "copy" => Ok(()),
             "timer" => Ok(()),
             "set_theme" => Ok(()),
@@ -138,6 +143,32 @@ impl SystemManager {
         }
     }
 
+    pub fn run_speedtest(&self) -> Result<String, String> {
+        let script_path = self.scripts_dir.join("speedtest.ps1");
+        let mut cmd = Command::new("powershell");
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(0x08000000);
+
+        let res = cmd.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-WindowStyle",
+            "Hidden",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            script_path.to_str().unwrap_or("scripts/speedtest.ps1"),
+        ]).output();
+
+        match res {
+            Ok(out) => {
+                let text = String::from_utf8_lossy(&out.stdout).to_string();
+                Ok(text)
+            }
+            Err(e) => Err(format!("Failed to run speedtest: {}", e)),
+        }
+    }
+
     fn open_folder(&self, path: &str) -> Result<(), String> {
         let mut cmd = Command::new("explorer");
         #[cfg(target_os = "windows")]
@@ -200,6 +231,69 @@ impl SystemManager {
         match res {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Failed to open uri {}: {}", uri, e)),
+        }
+    }
+}
+
+pub fn is_autostart_enabled() -> bool {
+    let mut cmd = Command::new("reg");
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000);
+
+    let output = cmd.args([
+        "query",
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "/v",
+        "MiniRaycast",
+    ]).output();
+
+    if let Ok(out) = output {
+        out.status.success()
+    } else {
+        false
+    }
+}
+
+pub fn set_autostart_enabled(enable: bool) -> Result<(), String> {
+    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    let path_str = exe_path.to_string_lossy().to_string();
+
+    let mut cmd = Command::new("reg");
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000);
+
+    if enable {
+        let val = format!("\"{}\"", path_str);
+        let res = cmd.args([
+            "add",
+            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "/v",
+            "MiniRaycast",
+            "/t",
+            "REG_SZ",
+            "/d",
+            &val,
+            "/f",
+        ]).output();
+
+        match res {
+            Ok(out) if out.status.success() => Ok(()),
+            Ok(out) => Err(String::from_utf8_lossy(&out.stderr).to_string()),
+            Err(e) => Err(e.to_string()),
+        }
+    } else {
+        let res = cmd.args([
+            "delete",
+            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            "/v",
+            "MiniRaycast",
+            "/f",
+        ]).output();
+
+        match res {
+            Ok(out) if out.status.success() => Ok(()),
+            Ok(out) => Err(String::from_utf8_lossy(&out.stderr).to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 }

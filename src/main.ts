@@ -158,6 +158,18 @@ function updateActionLabel() {
     actionLabel.textContent = "Выбрать";
     if (previewActionBtnText) previewActionBtnText.textContent = "Открыть раздел";
     previewActionBtn.className = "preview-action-btn";
+  } else if (current.action === "speedtest") {
+    actionLabel.textContent = "Замерить";
+    if (previewActionBtnText) previewActionBtnText.textContent = "Тест скорости";
+    previewActionBtn.className = "preview-action-btn";
+  } else if (current.action === "toggle_autostart") {
+    actionLabel.textContent = "Переключить";
+    if (previewActionBtnText) previewActionBtnText.textContent = "Автозагрузка";
+    previewActionBtn.className = "preview-action-btn";
+  } else if (current.item_type === "document") {
+    actionLabel.textContent = "Открыть";
+    if (previewActionBtnText) previewActionBtnText.textContent = "Открыть документ";
+    previewActionBtn.className = "preview-action-btn";
   } else if (current.item_type === "system") {
     actionLabel.textContent = "Выполнить";
     if (previewActionBtnText) previewActionBtnText.textContent = "Выполнить";
@@ -346,6 +358,85 @@ function renderPreview() {
         <div class="preview-row" style="margin-top: 6px;">
           <span class="preview-label">Запрос</span>
           <span class="preview-value">${escapeHtml(item.subtitle)}</span>
+        </div>
+      </div>
+    `;
+  } else if (item.action === "speedtest") {
+    bodyHtml = `
+      <div class="preview-section">
+        <div class="preview-section-title">Параметры замера скорости</div>
+        <div class="preview-row">
+          <span class="preview-label">Утилита</span>
+          <span class="preview-value mono">PowerShell Speedtest</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Показатели</span>
+          <span class="preview-value highlight">Пинг, Скачивание, Загрузка</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Интерфейс</span>
+          <span class="preview-value" style="color: var(--accent-green);">Без рекламы</span>
+        </div>
+      </div>
+      <div class="preview-section">
+        <div class="preview-section-title">Описание</div>
+        <div class="preview-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+          <span class="preview-label" style="line-height: 1.4; color: var(--text-main);">
+            Замеряет задержку и скорость интернет-канала. Итог автоматически копируется в буфер обмена.
+          </span>
+        </div>
+      </div>
+    `;
+  } else if (item.action === "toggle_autostart") {
+    bodyHtml = `
+      <div class="preview-section">
+        <div class="preview-section-title">Автозапуск системы</div>
+        <div class="preview-row">
+          <span class="preview-label">Реестр Windows</span>
+          <span class="preview-value mono" style="font-size: 11px;">HKCU\\...\\Run</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Приложение</span>
+          <span class="preview-value mono">MiniRaycast</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Состояние</span>
+          <span class="preview-value highlight">Переключаемое</span>
+        </div>
+      </div>
+      <div class="preview-section">
+        <div class="preview-section-title">Назначение</div>
+        <div class="preview-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+          <span class="preview-label" style="line-height: 1.4; color: var(--text-main);">
+            Управляет автозагрузкой приложения в фоновом режиме при старте операционной системы Windows.
+          </span>
+        </div>
+      </div>
+    `;
+  } else if (item.item_type === "document") {
+    const ext = item.keywords && item.keywords[4] ? item.keywords[4].toUpperCase() : "Файл";
+    bodyHtml = `
+      <div class="preview-section">
+        <div class="preview-section-title">Недавний документ</div>
+        <div class="preview-row">
+          <span class="preview-label">Расширение</span>
+          <span class="preview-value highlight">${escapeHtml(ext)}</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Тип</span>
+          <span class="preview-value">${escapeHtml(item.badge || "Документ")}</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-label">Действие</span>
+          <span class="preview-value">Открыть в приложении</span>
+        </div>
+      </div>
+      <div class="preview-section">
+        <div class="preview-section-title">Путь к файлу</div>
+        <div class="preview-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+          <span class="preview-value mono" style="max-width: 100%; white-space: normal; word-break: break-all; text-align: left; font-size: 11.5px;">
+            ${escapeHtml(item.payload)}
+          </span>
         </div>
       </div>
     `;
@@ -577,6 +668,33 @@ async function executeSelectedItem() {
       }
     } catch {
       showToast("Ошибка выполнения сетевой команды");
+    }
+    return;
+  }
+
+  if (item.action === "speedtest") {
+    showToast("Замер скорости интернета...");
+    try {
+      const resStr = await invoke<string>("run_speedtest_command");
+      const json = JSON.parse(resStr);
+      const ping = json.ping_ms;
+      const down = json.download_mbps;
+      const up = json.upload_mbps;
+      const text = `Пинг: ${ping} мс | Вход: ${down} Мбит/с | Исход: ${up} Мбит/с`;
+      showToast(text);
+      await navigator.clipboard.writeText(text);
+    } catch {
+      showToast("Ошибка замера скорости интернета");
+    }
+    return;
+  }
+
+  if (item.action === "toggle_autostart") {
+    try {
+      const enabled = await invoke<boolean>("toggle_autostart");
+      showToast(enabled ? "Автозагрузка включена" : "Автозагрузка выключена");
+    } catch {
+      showToast("Ошибка переключения автозагрузки");
     }
     return;
   }
