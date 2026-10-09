@@ -1,5 +1,6 @@
 param(
-    [string]$OutputDir = "release-portable"
+    [string]$OutputDir = "release-portable",
+    [string]$Version = "0.2.0"
 )
 
 Stop-Process -Name "MiniRaycast" -Force -ErrorAction SilentlyContinue
@@ -17,6 +18,12 @@ if (Test-Path "src-tauri/target/release/WebView2Loader.dll") {
     Copy-Item "src-tauri/target/release/WebView2Loader.dll" -Destination "$OutputDir/WebView2Loader.dll" -Force
 }
 Copy-Item "plugins" -Destination "$OutputDir" -Recurse -Force
-Copy-Item "scripts/system_controls.ps1" -Destination "$OutputDir/scripts/system_controls.ps1" -Force
+Copy-Item "scripts/*" -Destination "$OutputDir/scripts" -Recurse -Force
 
-Write-Host "Portable package created in $OutputDir"
+$zipName = "MiniRaycast-v$Version-windows-x64.zip"
+if (Test-Path $zipName) {
+    Remove-Item -Force $zipName
+}
+Compress-Archive -Path "$OutputDir/*" -DestinationPath $zipName -Force
+
+Write-Host "Portable package created in $OutputDir and archived to $zipName"

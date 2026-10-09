@@ -4,6 +4,7 @@ dist/
 dist-isolation/
 release-portable/
 *.exe
+*.zip
 *.db
 *.db-journal
 .DS_Store
